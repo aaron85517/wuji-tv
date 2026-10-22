@@ -1,0 +1,5 @@
+# Cloudflare Pages redirects
+/install.sh          https://raw.githubusercontent.com/pengchujin/aerial-tv/main/tools/get.sh                    302
+/download/standard   https://github.com/pengchujin/aerial-tv/releases/latest/download/aerial-standard.apk       302
+/download/guard      https://github.com/pengchujin/aerial-tv/releases/latest/download/aerial-guard.apk          302
+/github              https://github.com/pengchujin/aerial-tv                                                    302

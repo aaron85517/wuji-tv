@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aerial</string>
+    <string name="guard_name">Aerial Home Guard</string>
+    <string name="guard_description">Keeps Aerial as your home screen on TVs that do not let you change it, and lets Control Center put the TV to sleep. Reads no screen content.</string>
+
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+
+    <string name="cc_title">Control Center</string>
+    <string name="cc_sleep">Sleep</string>
+    <string name="cc_inputs">Inputs</string>
+    <string name="cc_network">Network</string>
+    <string name="cc_settings">Settings</string>
+    <string name="cc_volume">Volume</string>
+    <string name="cc_muted">Muted</string>
+    <string name="cc_hidden_apps">Hidden Apps</string>
+    <string name="cc_home_default">Aerial is your home screen</string>
+    <string name="cc_home_guarded">Home Guard is on</string>
+    <string name="cc_home_not_default">Not the default home screen</string>
+    <string name="cc_back">Back</string>
+    <string name="cc_no_inputs">No inputs found on this TV</string>
+    <string name="cc_sleep_needs_guard">Turn on Aerial Home Guard in Accessibility to use Sleep</string>
+
+    <string name="net_ethernet">Ethernet</string>
+    <string name="net_wifi">Wi-Fi</string>
+    <string name="net_offline">Not Connected</string>
+
+    <string name="input_connected">Connected</string>
+    <string name="input_live_tv">Live TV</string>
+    <string name="input_antenna">Antenna</string>
+    <string name="input_digital">Digital TV</string>
+    <string name="input_av">AV</string>
+
+    <string name="menu_move">Sort</string>
+    <string name="menu_hide">Hide from Home</string>
+    <string name="menu_info">App Info</string>
+    <string name="menu_uninstall">Uninstall</string>
+    <string name="move_hint">Use the arrows to sort · Press OK when done</string>
+
+    <string name="style_icons">Icons</string>
+    <string name="style_large">Large Text</string>
+    <string name="all_apps">All Apps</string>
+
+    <string name="hidden_title">Hidden Apps</string>
+    <string name="hidden_hint">Select an app to put it back on Home</string>
+    <string name="hidden_empty">No hidden apps</string>
+
+    <string name="launch_failed">Couldn\'t open %1$s</string>
+    <string name="unavailable">Not available on this TV</string>
+    <string name="cc_brightness">Brightness</string>
+    <string name="cc_wallpaper">Wallpaper &amp; Screensaver</string>
+    <string name="wp_title">Wallpaper &amp; Screensaver</string>
+    <string name="wp_daily">Daily Photos</string>
+    <string name="wp_daily_latest">Always Today\'s</string>
+    <string name="wp_builtin">Built-in</string>
+    <string name="wp_photos">My Photos</string>
+    <string name="wp_screensaver">Screensaver</string>
+    <string name="ss_aerial">Aerial</string>
+    <string name="ss_photos">Photos</string>
+    <string name="ss_clock">Clock</string>
+    <string name="wp_phone_title">Set up with your phone</string>
+    <string name="wp_phone_body">Scan to send photos and choose wallpapers. Phone and TV must be on the same network.</string>
+    <string name="wp_phone_offline">Connect the TV to a network to set up with your phone.</string>
+    <string name="ss_start">Start Now</string>
+    <string name="ss_back_hint">Tip: press Back on the top row of Home to start the screensaver.</string>
+</resources>

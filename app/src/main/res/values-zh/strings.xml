@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guard_name">Aerial 桌面守护</string>
+    <string name="guard_description">在不允许更换桌面的电视上，让 Aerial 保持为主屏幕，并让控制中心可以让电视进入睡眠。不会读取任何屏幕内容。</string>
+
+    <string name="greeting_morning">早上好</string>
+    <string name="greeting_afternoon">下午好</string>
+    <string name="greeting_evening">晚上好</string>
+
+    <string name="cc_title">控制中心</string>
+    <string name="cc_sleep">睡眠</string>
+    <string name="cc_inputs">信号源</string>
+    <string name="cc_network">网络</string>
+    <string name="cc_settings">设置</string>
+    <string name="cc_volume">音量</string>
+    <string name="cc_muted">已静音</string>
+    <string name="cc_hidden_apps">隐藏的 App</string>
+    <string name="cc_home_default">Aerial 是默认桌面</string>
+    <string name="cc_home_guarded">桌面守护已开启</string>
+    <string name="cc_home_not_default">尚未设为默认桌面</string>
+    <string name="cc_back">返回</string>
+    <string name="cc_no_inputs">这台电视没有可用的信号源</string>
+    <string name="cc_sleep_needs_guard">请在无障碍中开启「Aerial 桌面守护」后使用睡眠</string>
+
+    <string name="net_ethernet">有线网络</string>
+    <string name="net_wifi">Wi-Fi</string>
+    <string name="net_offline">未连接</string>
+
+    <string name="input_connected">已连接</string>
+    <string name="input_live_tv">电视直播</string>
+    <string name="input_antenna">模拟电视</string>
+    <string name="input_digital">数字电视</string>
+    <string name="input_av">AV</string>
+
+    <string name="menu_move">排序</string>
+    <string name="menu_hide">从主屏幕隐藏</string>
+    <string name="menu_info">应用信息</string>
+    <string name="menu_uninstall">卸载</string>
+    <string name="move_hint">用方向键排序 · 按确定键完成</string>
+
+    <string name="style_icons">图标版</string>
+    <string name="style_large">大字版</string>
+    <string name="all_apps">全部应用</string>
+
+    <string name="hidden_title">隐藏的 App</string>
+    <string name="hidden_hint">选择一个 App 放回主屏幕</string>
+    <string name="hidden_empty">没有隐藏的 App</string>
+
+    <string name="launch_failed">无法打开%1$s</string>
+    <string name="unavailable">此电视不支持</string>
+    <string name="cc_brightness">亮度</string>
+    <string name="cc_wallpaper">壁纸与屏保</string>
+    <string name="wp_title">壁纸与屏保</string>
+    <string name="wp_daily">每日精选</string>
+    <string name="wp_daily_latest">每日自动更新</string>
+    <string name="wp_builtin">内置</string>
+    <string name="wp_photos">我的照片</string>
+    <string name="wp_screensaver">屏幕保护程序</string>
+    <string name="ss_aerial">航拍</string>
+    <string name="ss_photos">照片</string>
+    <string name="ss_clock">时钟</string>
+    <string name="wp_phone_title">用手机设置</string>
+    <string name="wp_phone_body">扫码即可从手机发送照片、选择壁纸。手机和电视需连接同一网络。</string>
+    <string name="wp_phone_offline">电视联网后即可用手机设置。</string>
+    <string name="ss_start">立即开始</string>
+    <string name="ss_back_hint">提示：在主页第一行按返回键，也可以立即开始屏保。</string>
+</resources>
