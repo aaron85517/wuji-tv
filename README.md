@@ -4,7 +4,7 @@
 
 基于 [Aerial](https://github.com/pengchujin/aerial-tv) 修改的 Android TV 桌面。在同一个应用里切换「图标版」与「大字版」，共用壁纸、照片和应用排序。
 
-[下载安装包](https://github.com/aaron85517/wuji-tv/releases/tag/v0.1.1) · [完整使用说明](docs/USAGE.zh-CN.md) · [验证记录](docs/VALIDATION.md) · [反馈问题](https://github.com/aaron85517/wuji-tv/issues)
+[下载安装包](https://github.com/aaron85517/wuji-tv/releases/tag/v0.1.2) · [完整使用说明](docs/USAGE.zh-CN.md) · [验证记录](docs/VALIDATION.md) · [反馈问题](https://github.com/aaron85517/wuji-tv/issues)
 
 > 首个分享版本主要在小米电视 S Pro Mini LED 85 英寸（2025 款）上使用。其他电视、固件的兼容性尚未验证。安装不需要 root，不需要卸载或停用系统桌面。
 
@@ -14,7 +14,7 @@
 
 | 图标版 | 大字版 |
 |:---:|:---:|
-| ![图标版首页：六列网格、无底板与下一排露边](docs/images/home-icons-v0.1.1.png) | ![大字版首页：前五个应用与全部应用入口](docs/images/home-large-v0.1.1.png) |
+| ![图标版首页：六列网格、无底板与下一排露边](docs/images/home-icons-v0.1.2.png) | ![大字版首页：前五个应用与全部应用入口](docs/images/home-large-v0.1.1.png) |
 
 ### 风格切换与快捷设置
 
@@ -30,11 +30,18 @@
 
 两张首页图为直接截图；设置图基于真机截图，经图片编辑工具遮挡 Wi-Fi 名称、二维码和地址，画面有缩放。请扫描自己电视上的二维码，文档图片不能用于连接。
 
+## 本次更新 · v0.1.2
+
+对 26 个主流及常用应用的图标做了重新绘制，包括爱奇艺、哔哩哔哩、网易爆米花、优酷等，统一为适合电视展示的横向卡片，保留易于辨认的应用标识。未匹配到定制图的应用，使用原图标搭配统一的石墨色底；无法读取原图标时显示通用 Logo。
+
+已在小米电视覆盖安装，使用者确认显示效果。可直接覆盖升级，保留壁纸、照片和应用排序。详见 [更新记录](CHANGELOG.md)。
+
 ## 有什么不同
 
 | 功能 | 使用方式 |
 |---|---|
 | 图标版 | 六列应用网格，底部首排完整、下一排露边；没有半透明底板，保留左上大时间；选中磁贴放大、浮起，无额外白色描边 |
+| 定制应用图标 | 26 个应用使用重绘卡片；其他应用使用原图标与通用底色 |
 | 大字版 | 左侧显示排序后的前五个可见应用，下面是固定的「全部应用」入口 |
 | 大字选中效果 | 文字放大、加粗、变亮，没有阴影、边框或背景底板 |
 | 随时切换 | 打开右上角控制中心，在底部直接选择「图标版」或「大字版」 |
@@ -49,7 +56,7 @@
 
 ## 下载与安装
 
-到 [v0.1.1 发布页](https://github.com/aaron85517/wuji-tv/releases/tag/v0.1.1) 下载 **`wuji-tv-v0.1.1.apk`**。不要下载 GitHub 自动生成的 Source code 压缩包来安装。
+到 [v0.1.2 发布页](https://github.com/aaron85517/wuji-tv/releases/tag/v0.1.2) 下载 **`wuji-tv-v0.1.2.apk`**。不要下载 GitHub 自动生成的 Source code 压缩包来安装。
 
 这是仓库使用的新名字。当前 APK 为已在电视使用的同一版本：
 
@@ -57,8 +64,8 @@
 |---|---|
 | 电视中显示的应用名 | Aerial 焦点增强版 / Aerial Focus |
 | 应用包名 | `app.orchard.tv.focus` |
-| APK 内部版本 | `1.8-focus.4`，versionCode `13` |
-| GitHub 分享版本 | `v0.1.1` |
+| APK 内部版本 | `1.8-focus.5`，versionCode `14` |
+| GitHub 分享版本 | `v0.1.2` |
 | Android 最低版本 | Android 8.0（不代表所有该版本以上电视均已适配） |
 
 保留现有应用名称与包名是为了延续已安装版本的数据和覆盖升级。wuji-tv 与上游 `app.orchard.tv` 是两个应用；请避免同时启用两套桌面守护。
@@ -75,7 +82,7 @@
 
 ```bash
 adb connect <电视IP>:5555
-adb -s <电视IP>:5555 install -r wuji-tv-v0.1.1.apk
+adb -s <电视IP>:5555 install -r wuji-tv-v0.1.2.apk
 adb -s <电视IP>:5555 shell cmd package compile -m speed -f app.orchard.tv.focus
 adb -s <电视IP>:5555 shell am start -n app.orchard.tv.focus/app.orchard.tv.MainActivity
 ```
@@ -131,6 +138,7 @@ adb -s <电视IP>:5555 shell input keyevent KEYCODE_HOME
 
 - 真机检查过大字显示、应用网格、长按排序、前五项同步、共享壁纸及手机二维码入口。
 - 使用者已在 v0.1.0 验收实体遥控器与重启后自动进入桌面，反馈正常；v0.1.1 的布局更新检查了方向键导航和风格切换，未再次重启。
+- v0.1.2 已在同一台电视覆盖安装，确认新版图标正常显示，使用者反馈效果可以；本次未重复重启、排序或手机上传测试。
 - 手机上传功能继承上游实现；本次确认入口与二维码，未重新上传照片测试。
 - TCL、海信、索尼等其他机型未验证本分享版；上游机型笔记只能作为参考。
 
@@ -155,5 +163,7 @@ cd wuji-tv
 本项目基于 [pengchujin/aerial-tv](https://github.com/pengchujin/aerial-tv)，保留其 [MIT 许可与原作者署名](LICENSE)。公开的是当前定制源码快照；原版介绍见 [上游仓库](https://github.com/pengchujin/aerial-tv)。
 
 界面方向参考大字列表桌面，包括 [guizang-tv](https://github.com/op7418/guizang-tv)；未将其壁纸打包进本项目。Inter 字体使用 [SIL Open Font License](FONT-LICENSE-OFL.txt)。航拍影片版权归 Apple，图片版权归各自作者；仓库不附带用户上传的照片或航拍视频。
+
+应用图标中的品牌标识归各自权利人所有；本项目的图标适配不代表相关品牌授权或合作。
 
 wuji-tv 为个人维护的开源修改版，与 Apple、小米及上述上游项目的维护者无官方关联。

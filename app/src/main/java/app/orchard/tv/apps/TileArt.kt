@@ -7,25 +7,26 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Shader
-import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import app.orchard.tv.wallpaper.Images
+import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * What a tile draws. tvOS icons are layered so they can shift against each other when focused;
- * Android's adaptive icons happen to be layered the same way, so those keep their two layers here.
+ * What a tile draws: one card, plus the artwork the home screen needs to light its surroundings.
  *
- * - [back] always fills the tile: the app's TV banner, the adaptive icon's background layer, or a
- *   plate in the icon's own color.
- * - [fore] is drawn centered on top, [foreFraction] of the tile height tall, and moves with parallax.
+ * - [back] always fills the tile: the card that ships in `assets/icons` for this package, or the
+ *   unified graphite plate with the app's own icon on it.
+ * - [fore] is the layer that used to shift against the plate under parallax. Every card is
+ *   single-layer, so it is null everywhere today (and [foreFraction] with it); the field and the
+ *   drawing code stay so the tiles keep their existing motion without touching the composables.
  */
 class TileArt(
     val back: ImageBitmap,
@@ -48,6 +49,21 @@ object TileArtFactory {
     private const val GRAPHITE_TOP = 0xFF3A3A3C.toInt()
     private const val GRAPHITE_BOTTOM = 0xFF242426.toInt()
 
+    /**
+     * The unified plate for an app that has no card of its own: one graphite colour, lit from above,
+     * top mixed 5% toward white and bottom 13 levels darker. Same colour and same ramp as the
+     * shipped `generic-app` fallback, so a TV full of unmatched apps still reads as one family.
+     */
+    private const val PLATE = 0xFF3E444F.toInt()
+    private const val PLATE_LIFT = 0.05f
+    private const val PLATE_DROP = 13f
+
+    /** The plate's logo box: 58% of the tile height, square and centred, as in the approved design. */
+    private const val PLATE_ART = 0.58f
+
+    /** Launcher-like corner rounding applied to that logo box (24% of its side). */
+    private const val PLATE_ART_RADIUS = 0.24f
+
     fun fromBanner(banner: Drawable): TileArt {
         val back = createBitmap(W, H)
         Canvas(back).apply {
@@ -57,86 +73,68 @@ object TileArtFactory {
         return finish(back, null, 0f)
     }
 
-    fun fromIcon(icon: Drawable): TileArt {
-        if (icon is AdaptiveIconDrawable && icon.foreground != null) adaptive(icon)?.let { return it }
-        return legacy(icon)
+    /**
+     * The fallback for an app with no card: the icon the TV itself shows, untouched, sitting on
+     * [PLATE] at [PLATE_ART] of the tile height.
+     *
+     * The icon keeps its own proportion and is only scaled down to fit the box — never stretched,
+     * never cropped — so a wide icon gets a smaller box rather than losing its edges. No parallax:
+     * one square logo, centred, exactly like the cards that ship in the APK.
+     */
+    fun fromIconTile(icon: Drawable): TileArt {
+        val back = plate()
+        val side = (H * PLATE_ART).roundToInt()
+        val art = iconSquare(icon, side)
+        Canvas(back).drawBitmap(art, ((W - side) / 2).toFloat(), ((H - side) / 2).toFloat(), Paint(Paint.FILTER_BITMAP_FLAG))
+        return finish(back, null, 0f)
     }
 
-    /** Null when the foreground ignores the adaptive safe zone (a legacy icon wrapped as adaptive). */
-    private fun adaptive(icon: AdaptiveIconDrawable): TileArt? {
-        // The foreground's 108-unit square keeps the logo inside its middle 66 units, so a
-        // square as tall as the tile shows the logo at roughly the size tvOS uses.
-        val size = H
-        val fore = createBitmap(size, size)
-        icon.foreground.setBounds(0, 0, size, size)
-        icon.foreground.draw(Canvas(fore))
-        if (opaqueExtent(fore) > 0.7f) {
-            fore.recycle()
-            return null
-        }
+    /** Absolute last resort, when even the generic card cannot be read: the bare plate. */
+    fun fromPlainPlate(): TileArt = finish(plate(), null, 0f)
+
+    private fun plate(): Bitmap {
         val back = createBitmap(W, H)
-        Canvas(back).apply {
-            drawColor(GRAPHITE_BOTTOM)
-            icon.background?.let { bg ->
-                // The background layer is a square; cover the wide tile with it.
-                bg.setBounds(0, (H - W) / 2, W, (H - W) / 2 + W)
-                bg.draw(this)
+        Canvas(back).drawBitmap(toneColumn(H), null, android.graphics.Rect(0, 0, W, H), Paint(Paint.FILTER_BITMAP_FLAG))
+        return back
+    }
+
+    /** [PLATE] as a 1×h column: cosine ramp from the lit top to the darkened bottom. */
+    private fun toneColumn(h: Int): Bitmap {
+        val px = IntArray(h)
+        for (y in 0 until h) {
+            val k = (0.5 + 0.5 * cos(Math.PI * y / (h - 1).toDouble())).toFloat()
+            var colour = 0xFF shl 24
+            for (shift in intArrayOf(16, 8, 0)) {
+                val base = (PLATE shr shift) and 0xFF
+                val light = base + (255 - base) * PLATE_LIFT
+                val dark = (base - PLATE_DROP).coerceAtLeast(0f)
+                val v = (dark + (light - dark) * k).roundToInt().coerceIn(0, 255)
+                colour = colour or (v shl shift)
             }
+            px[y] = colour
         }
-        return finish(back, fore, 1f)
+        val column = createBitmap(1, h)
+        column.setPixels(px, 0, 1, 0, 0, 1, h)
+        return column
     }
 
-    /** How much of the bitmap's width or height its visible pixels span, 0..1. */
-    private fun opaqueExtent(b: Bitmap): Float {
-        val n = b.width
-        var min = n; var max = -1
-        val step = 2
-        for (y in 0 until n step step) for (x in 0 until n step step) {
-            if (android.graphics.Color.alpha(b.getPixel(x, y)) > 24) {
-                min = minOf(min, x, y); max = maxOf(max, x, y)
-            }
+    /** Draws [d] into a [side]-square, fitted (contain) so it keeps its aspect, then rounds it. */
+    private fun iconSquare(d: Drawable, side: Int): Bitmap {
+        val out = createBitmap(side, side)
+        val iw = d.intrinsicWidth
+        val ih = d.intrinsicHeight
+        if (iw > 0 && ih > 0 && iw != ih) {
+            val k = min(side / iw.toFloat(), side / ih.toFloat())
+            val w = max(1, (iw * k).roundToInt())
+            val h = max(1, (ih * k).roundToInt())
+            val l = (side - w) / 2
+            val t = (side - h) / 2
+            d.setBounds(l, t, l + w, t + h)
+        } else {
+            d.setBounds(0, 0, side, side)
         }
-        return if (max < 0) 0f else (max - min) / n.toFloat()
-    }
-
-    private fun legacy(icon: Drawable): TileArt {
-        // A legacy icon. It sits, at the size tvOS gives a logo, on a frosted plate made from
-        // itself: the icon blown up past the tile's edges, blurred and dimmed. Full-square icons
-        // (many China-market system apps expect the launcher to mask them) get rounded corners.
-        val sample = 192
-        val iconBitmap = createBitmap(sample, sample)
-        icon.setBounds(0, 0, sample, sample)
-        icon.draw(Canvas(iconBitmap))
-        val fore = if (opaqueCorners(iconBitmap)) roundCorners(iconBitmap, 0.225f) else iconBitmap
-
-        val pw = 48
-        val ph = 27
-        val plate = createBitmap(pw, ph)
-        Canvas(plate).apply {
-            drawColor(plateFromTint(dominant(iconBitmap)))
-            val inset = (sample * 0.2f).roundToInt()
-            drawBitmap(iconBitmap, android.graphics.Rect(inset, inset + sample / 8, sample - inset, sample - inset - sample / 8), android.graphics.Rect(0, 0, pw, ph), Paint(Paint.FILTER_BITMAP_FLAG))
-        }
-        val px = IntArray(pw * ph)
-        plate.getPixels(px, 0, pw, 0, 0, pw, ph)
-        repeat(3) { Images.boxBlur(px, pw, ph, 3) }
-        plate.setPixels(px, 0, pw, 0, 0, pw, ph)
-        val back = createBitmap(W, H)
-        val frost = ColorMatrix().apply {
-            setSaturation(1.3f)
-            postConcat(ColorMatrix().apply { setScale(0.7f, 0.7f, 0.7f, 1f) })
-        }
-        Canvas(back).drawBitmap(plate, null, android.graphics.Rect(0, 0, W, H), Paint(Paint.FILTER_BITMAP_FLAG).apply { colorFilter = ColorMatrixColorFilter(frost) })
-        plate.recycle()
-        if (fore !== iconBitmap) iconBitmap.recycle()
-        return finish(back, fore, 0.6f)
-    }
-
-    private fun opaqueCorners(b: Bitmap): Boolean {
-        val i = (b.width * 0.03f).roundToInt()
-        val e = b.width - 1 - i
-        return listOf(b.getPixel(i, i), b.getPixel(e, i), b.getPixel(i, e), b.getPixel(e, e))
-            .all { android.graphics.Color.alpha(it) > 200 }
+        d.draw(Canvas(out))
+        return roundCorners(out, PLATE_ART_RADIUS)
     }
 
     private fun roundCorners(src: Bitmap, radiusFraction: Float): Bitmap {
@@ -198,16 +196,6 @@ object TileArtFactory {
         if (small !== b) small.recycle()
         if (total == 0.0) return GRAPHITE_TOP
         return android.graphics.Color.rgb((r / total).roundToInt(), (g / total).roundToInt(), (bl / total).roundToInt())
-    }
-
-    /** A plate behind a logo that has no background of its own: the logo's hue, deep and calm. */
-    private fun plateFromTint(tint: Int): Int {
-        val hsl = FloatArray(3)
-        ColorUtils.colorToHSL(tint, hsl)
-        if (hsl[1] < 0.18f) return GRAPHITE_TOP
-        hsl[1] = hsl[1].coerceAtMost(0.55f)
-        hsl[2] = 0.24f
-        return ColorUtils.HSLToColor(hsl)
     }
 
     private fun backdropOf(src: Bitmap): Bitmap {

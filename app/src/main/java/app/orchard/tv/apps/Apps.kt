@@ -6,6 +6,9 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -69,12 +72,13 @@ object AppCatalog {
 
         coroutineScope {
             found.values.map { (info, leanback) ->
-                async { runCatching { entry(pm, info, leanback) }.getOrNull() }
+                async { runCatching { entry(context, info, leanback) }.getOrNull() }
             }.awaitAll().filterNotNull()
         }
     }
 
-    private fun entry(pm: PackageManager, info: ActivityInfo, leanback: Boolean): AppEntry {
+    private fun entry(context: Context, info: ActivityInfo, leanback: Boolean): AppEntry {
+        val pm = context.packageManager
         val pkg = info.packageName
         val stamp = runCatching { pm.getPackageInfo(pkg, 0).lastUpdateTime }.getOrDefault(0L)
         val cached = synchronized(cache) { cache[pkg] }?.takeIf { it.stamp == stamp }
@@ -85,13 +89,66 @@ object AppCatalog {
             art = cached.art
         } else {
             label = info.loadLabel(pm).toString().trim().ifEmpty { pkg }
-            // Banner first: it is the artwork the app designed for a TV. ActivityInfo falls back
-            // to the application's banner by itself.
-            val banner = if (leanback) runCatching { info.loadBanner(pm) }.getOrNull() else null
-            art = if (banner != null) TileArtFactory.fromBanner(banner) else TileArtFactory.fromIcon(info.loadIcon(pm))
+            art = cardArt(context, pm, info)
             synchronized(cache) { cache[pkg] = Cached(stamp, label, art) }
         }
         val removable = (info.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0
         return AppEntry(pkg, label, ComponentName(pkg, info.name), leanback, removable, art)
     }
+
+    /**
+     * Card art for one app, in the order the design fixed: the package's own card, else the icon
+     * the TV shows, else the generic card, else a bare plate. Every step is guarded, so a broken
+     * asset costs that app its picture at worst — never its tile.
+     *
+     * The app's TV banner is deliberately not used: it is a 16:9 promo image with text in it, and
+     * the two fallbacks above are what the user approved instead.
+     */
+    private fun cardArt(context: Context, pm: PackageManager, info: ActivityInfo): TileArt {
+        ArtAssets.card(context, info.packageName)?.let { card ->
+            runCatching { TileArtFactory.fromBanner(card) }.getOrNull()?.let { return it }
+        }
+        runCatching { info.loadIcon(pm) }.getOrNull()?.let { icon ->
+            runCatching { TileArtFactory.fromIconTile(icon) }.getOrNull()?.let { return it }
+        }
+        ArtAssets.generic(context)?.let { generic ->
+            runCatching { TileArtFactory.fromBanner(generic) }.getOrNull()?.let { return it }
+        }
+        return TileArtFactory.fromPlainPlate()
+    }
+}
+
+/**
+ * The card art shipped in `assets/icons`: one 960×540 PNG per app, named with the exact package
+ * name (`com.cibn.tv.png`), plus `generic-app.png` for everything else.
+ *
+ * Kept as an asset lookup rather than a table in code: the directory listing is the register, so
+ * adding or dropping a card is a file operation, and only an exact package-name match can pick up
+ * a card (a renamed or region-variant package falls through to the icon fallback).
+ */
+private object ArtAssets {
+    private const val DIR = "icons"
+    private const val EXT = ".png"
+    private const val GENERIC = "$DIR/generic-app$EXT"
+
+    @Volatile
+    private var cards: Set<String>? = null
+
+    /** Package names that have a card. Read once; the assets cannot change while we run. */
+    private fun names(context: Context): Set<String> = cards ?: synchronized(this) {
+        cards ?: runCatching {
+            context.assets.list(DIR).orEmpty()
+                .filter { it.endsWith(EXT) }
+                .mapTo(HashSet()) { it.dropLast(EXT.length) }
+        }.getOrDefault(emptySet()).also { cards = it }
+    }
+
+    fun card(context: Context, pkg: String): Drawable? =
+        if (pkg in names(context)) drawable(context, "$DIR/$pkg$EXT") else null
+
+    fun generic(context: Context): Drawable? = drawable(context, GENERIC)
+
+    private fun drawable(context: Context, path: String): Drawable? = runCatching {
+        context.assets.open(path).use { BitmapFactory.decodeStream(it) }
+    }.getOrNull()?.let { BitmapDrawable(context.resources, it) }
 }
