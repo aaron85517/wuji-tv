@@ -32,8 +32,8 @@ android {
         create("focus") {
             dimension = "home"
             applicationIdSuffix = ".focus"
-            versionCode = 11
-            versionNameSuffix = "-focus.2"
+            versionCode = 13
+            versionNameSuffix = "-focus.4"
         }
     }
 

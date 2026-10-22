@@ -90,6 +90,8 @@ fun AppTile(
     onMove: (Int) -> Unit,
     onMoveDone: () -> Unit,
     modifier: Modifier = Modifier,
+    /** How far the tile grows when focused; the six-across shelf asks for a little less than 1.22. */
+    focusScale: Float = FOCUSED_SCALE,
 ) {
     val reduced = LocalReducedMotion.current
     val scope = rememberCoroutineScope()
@@ -110,7 +112,7 @@ fun AppTile(
         targetValue = when {
             reduced -> 1f
             pressed -> PRESSED_SCALE
-            focused || moving -> FOCUSED_SCALE
+            focused || moving -> focusScale
             else -> 1f
         },
         // Press answers immediately; focus settles on a spring so rapid D-pad presses retarget smoothly.

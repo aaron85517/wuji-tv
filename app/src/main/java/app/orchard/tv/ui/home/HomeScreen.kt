@@ -68,19 +68,30 @@ import app.orchard.tv.wallpaper.Wallpapers
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
 
-private const val COLUMNS = 5
+private const val COLUMNS = 6
+
+/** How far a tile in the first row grows when focused: six across, a little less than the 1.22. */
+private const val SHELF_SCALE = 1.15f
 
 /** Grid geometry for the screen at hand. On a 1080p TV this is a 960×540 dp canvas. */
 private class GridMetrics(screenW: Dp, screenH: Dp) {
     val margin = 56.dp
-    val gap = 28.dp
+    val gap = 19.dp
     val tileW = (screenW - margin * 2 - gap * (COLUMNS - 1)) / COLUMNS
     val tileH = tileW * 9f / 16f
     val pitchX = tileW + gap
-    val pitchY = tileH + 50.dp
 
-    /** The top row sits a little past the middle, under the shelf, as on tvOS. */
-    val topRowY = screenH * 0.555f
+    /** Row pitch: the tile, the name under it, and the gap that keeps a lifted tile clear. */
+    val pitchY = 118.dp
+
+    /** The first row sits a little past the middle of the screen. */
+    val topRowY = 410.dp
+
+    /**
+     * The clock keeps the place it had while the grid still started higher up: a fixed offset from
+     * that older top row, so it does not ride down with the grid.
+     */
+    val clockTop = screenH * 0.555f - 196.dp
 
     /** Where a row rests once you go down into the grid: the row above stays in view. */
     val restY = screenH * 0.37f
@@ -283,7 +294,7 @@ private fun IconHome(
                 ShelfClock(
                     now = now,
                     modifier = Modifier
-                        .padding(start = metrics.margin, top = metrics.topRowY - 196.dp)
+                        .padding(start = metrics.margin, top = metrics.clockTop)
                         .graphicsLayer { alpha = 1f - (scroll.value / collapsePx * 1.6f).coerceIn(0f, 1f) },
                 )
 
@@ -306,6 +317,7 @@ private fun IconHome(
                             moving = moving == app.key,
                             columns = COLUMNS,
                             appearDelayMs = (index * 28).coerceAtMost(320),
+                            focusScale = SHELF_SCALE,
                             onFocused = {
                                 focusedKey = app.key
                                 lastFocusedIndex = index

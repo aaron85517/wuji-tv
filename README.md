@@ -4,7 +4,7 @@
 
 基于 [Aerial](https://github.com/pengchujin/aerial-tv) 修改的 Android TV 桌面。在同一个应用里切换「图标版」与「大字版」，共用壁纸、照片和应用排序。
 
-[下载安装包](https://github.com/aaron85517/wuji-tv/releases/tag/v0.1.0) · [完整使用说明](docs/USAGE.zh-CN.md) · [验证记录](docs/VALIDATION.md) · [反馈问题](https://github.com/aaron85517/wuji-tv/issues)
+[下载安装包](https://github.com/aaron85517/wuji-tv/releases/tag/v0.1.1) · [完整使用说明](docs/USAGE.zh-CN.md) · [验证记录](docs/VALIDATION.md) · [反馈问题](https://github.com/aaron85517/wuji-tv/issues)
 
 > 首个分享版本主要在小米电视 S Pro Mini LED 85 英寸（2025 款）上使用。其他电视、固件的兼容性尚未验证。安装不需要 root，不需要卸载或停用系统桌面。
 
@@ -14,27 +14,27 @@
 
 | 图标版 | 大字版 |
 |:---:|:---:|
-| ![图标版首页：应用网格与浮起焦点](docs/images/home-icons.png) | ![大字版首页：前五个应用与全部应用入口](docs/images/home-large.png) |
+| ![图标版首页：六列网格、无底板与下一排露边](docs/images/home-icons-v0.1.1.png) | ![大字版首页：前五个应用与全部应用入口](docs/images/home-large-v0.1.1.png) |
 
 ### 风格切换与快捷设置
 
 按遥控器菜单键，或选择右上角快捷入口，在控制中心底部直接选择「图标版 / 大字版」。勾选标记表示当前风格，白色按钮表示遥控器当前焦点。
 
-![控制中心：底部并排选择图标版或大字版](docs/images/style-switch-redacted.png)
+![控制中心：底部并排选择图标版或大字版](docs/images/style-switch-redacted-v0.1.1.png)
 
 ### 壁纸、屏保与手机上传
 
 进入「壁纸与屏保」，选择每日精选、自己的照片及屏保模式。手机连接同一局域网后，扫描电视上实际显示的二维码即可上传图片。
 
-![壁纸与屏保：每日精选、我的照片和手机设置入口](docs/images/wallpaper-redacted.png)
+![壁纸与屏保：每日精选、我的照片和手机设置入口](docs/images/wallpaper-redacted-v0.1.1.png)
 
-设置截图中的 Wi-Fi 名称、二维码和地址已通过图片编辑工具遮挡；请扫描自己电视上的二维码，文档图片不能用于连接。
+两张首页图为直接截图；设置图基于真机截图，经图片编辑工具遮挡 Wi-Fi 名称、二维码和地址，画面有缩放。请扫描自己电视上的二维码，文档图片不能用于连接。
 
 ## 有什么不同
 
 | 功能 | 使用方式 |
 |---|---|
-| 图标版 | 应用网格；选中磁贴放大、浮起，周围磁贴适当变暗，没有额外白色描边 |
+| 图标版 | 六列应用网格，底部首排完整、下一排露边；没有半透明底板，保留左上大时间；选中磁贴放大、浮起，无额外白色描边 |
 | 大字版 | 左侧显示排序后的前五个可见应用，下面是固定的「全部应用」入口 |
 | 大字选中效果 | 文字放大、加粗、变亮，没有阴影、边框或背景底板 |
 | 随时切换 | 打开右上角控制中心，在底部直接选择「图标版」或「大字版」 |
@@ -49,7 +49,7 @@
 
 ## 下载与安装
 
-到 [v0.1.0 发布页](https://github.com/aaron85517/wuji-tv/releases/tag/v0.1.0) 下载 **`wuji-tv-v0.1.0.apk`**。不要下载 GitHub 自动生成的 Source code 压缩包来安装。
+到 [v0.1.1 发布页](https://github.com/aaron85517/wuji-tv/releases/tag/v0.1.1) 下载 **`wuji-tv-v0.1.1.apk`**。不要下载 GitHub 自动生成的 Source code 压缩包来安装。
 
 这是仓库使用的新名字。当前 APK 为已在电视使用的同一版本：
 
@@ -57,8 +57,8 @@
 |---|---|
 | 电视中显示的应用名 | Aerial 焦点增强版 / Aerial Focus |
 | 应用包名 | `app.orchard.tv.focus` |
-| APK 内部版本 | `1.8-focus.2`，versionCode `11` |
-| GitHub 分享版本 | `v0.1.0` |
+| APK 内部版本 | `1.8-focus.4`，versionCode `13` |
+| GitHub 分享版本 | `v0.1.1` |
 | Android 最低版本 | Android 8.0（不代表所有该版本以上电视均已适配） |
 
 保留现有应用名称与包名是为了延续已安装版本的数据和覆盖升级。wuji-tv 与上游 `app.orchard.tv` 是两个应用；请避免同时启用两套桌面守护。
@@ -75,7 +75,7 @@
 
 ```bash
 adb connect <电视IP>:5555
-adb -s <电视IP>:5555 install -r wuji-tv-v0.1.0.apk
+adb -s <电视IP>:5555 install -r wuji-tv-v0.1.1.apk
 adb -s <电视IP>:5555 shell cmd package compile -m speed -f app.orchard.tv.focus
 adb -s <电视IP>:5555 shell am start -n app.orchard.tv.focus/app.orchard.tv.MainActivity
 ```
@@ -130,7 +130,7 @@ adb -s <电视IP>:5555 shell input keyevent KEYCODE_HOME
 小米 S Pro Mini LED 85 英寸（2025），机型 `MiTV-MFTR0`，Android 14，澎湃 OS `3.0.101.0.UFTMATV`：
 
 - 真机检查过大字显示、应用网格、长按排序、前五项同步、共享壁纸及手机二维码入口。
-- 使用者已验收实体遥控器与重启后自动进入桌面，反馈正常。
+- 使用者已在 v0.1.0 验收实体遥控器与重启后自动进入桌面，反馈正常；v0.1.1 的布局更新检查了方向键导航和风格切换，未再次重启。
 - 手机上传功能继承上游实现；本次确认入口与二维码，未重新上传照片测试。
 - TCL、海信、索尼等其他机型未验证本分享版；上游机型笔记只能作为参考。
 
