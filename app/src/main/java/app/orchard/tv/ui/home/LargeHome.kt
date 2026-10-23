@@ -86,6 +86,8 @@ import app.orchard.tv.ui.theme.LocalReducedMotion
 import app.orchard.tv.ui.theme.Motion
 import app.orchard.tv.ui.theme.Palette
 import app.orchard.tv.ui.theme.Type
+import app.orchard.tv.ui.weather.CapsuleWeatherContent
+import app.orchard.tv.weather.Weather
 import app.orchard.tv.wallpaper.Wallpapers
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
@@ -378,8 +380,10 @@ private fun LargeRow(
 }
 
 /**
- * Top right of the large-type Home: the time, the network state and the Control Center entry, in
- * one thin capsule. Focusable — Right from the list lands here, Down, Left and Back go back.
+ * Top right of the large-type Home: the time with the weather mark, then the network state and the
+ * Control Center entry, all in one thin capsule that opens Control Center as a whole. The weather
+ * mark is display only here — it is not its own focus stop — because the weather entry lives as a
+ * row inside Control Center (and as a focused mark on the icon Home).
  */
 @Composable
 private fun LargeStatusCapsule(
@@ -428,6 +432,16 @@ private fun LargeStatusCapsule(
                 timeText(now),
                 style = Type.Headline.copy(fontSize = 17.sp, fontWeight = FontWeight.W500, color = fg),
             )
+            // Display only: the mark and degrees, no separate focus, no click of its own. Hidden
+            // entirely until the weather is configured and has a reading.
+            if (Weather.state.show) {
+                CapsuleWeatherContent(
+                    state = Weather.state,
+                    color = fg,
+                    iconSize = 16.dp,
+                    style = Type.Headline.copy(fontSize = 15.sp, fontWeight = FontWeight.W500, color = fg),
+                )
+            }
             GlyphIcon(
                 when (network.kind) {
                     NetKind.Wifi -> Glyph.Wifi
@@ -440,6 +454,7 @@ private fun LargeStatusCapsule(
         }
     }
 }
+
 
 /**
  * Every visible app as a grid of the same tiles the icon Home uses, reached from "All Apps".

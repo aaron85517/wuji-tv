@@ -23,7 +23,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -48,6 +51,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -64,6 +68,10 @@ import app.orchard.tv.ui.theme.Motion
 import app.orchard.tv.ui.theme.Palette
 import app.orchard.tv.ui.theme.Type
 import app.orchard.tv.ui.wallpaper.WallpaperSheet
+import app.orchard.tv.ui.weather.ShelfWeather
+import app.orchard.tv.ui.weather.WeatherPanel
+import app.orchard.tv.weather.Weather
+import app.orchard.tv.weather.XiaomiWeather
 import app.orchard.tv.wallpaper.Wallpapers
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
@@ -124,6 +132,7 @@ fun HomeScreen(
     val apps = vm.apps
     val overlay = vm.overlay
     val now by rememberNow()
+    val context = LocalContext.current
 
     Box(
         Modifier
@@ -146,7 +155,13 @@ fun HomeScreen(
         if (vm.style == HomeStyle.Large) {
             LargeHome(vm = vm, now = now, onLaunch = onLaunch, onStartScreensaver = onStartScreensaver)
         } else {
-            IconHome(vm = vm, now = now, onLaunch = onLaunch, onStartScreensaver = onStartScreensaver)
+            IconHome(
+                vm = vm,
+                now = now,
+                onLaunch = onLaunch,
+                onStartScreensaver = onStartScreensaver,
+                onOpenWeather = { XiaomiWeather.openOrToast(context) },
+            )
         }
 
         ControlCenter(
@@ -191,6 +206,11 @@ fun HomeScreen(
             },
         )
 
+        WeatherPanel(
+            visible = overlay is Overlay.Weather,
+            onDismiss = { vm.overlay = Overlay.None },
+        )
+
         Screensaver(visible = vm.screensaverVisible, apps = apps, now = now, skips = vm.screensaverSkips)
     }
 }
@@ -202,6 +222,7 @@ private fun IconHome(
     now: LocalDateTime,
     onLaunch: (AppEntry, Rect?) -> Unit,
     onStartScreensaver: () -> Unit,
+    onOpenWeather: () -> Unit,
 ) {
     val apps = vm.apps
     val overlay = vm.overlay
@@ -212,9 +233,13 @@ private fun IconHome(
     val requesters = remember { HashMap<String, FocusRequester>() }
     fun requester(key: String) = requesters.getOrPut(key) { FocusRequester() }
     val pillRequester = remember { FocusRequester() }
+    val weatherRequester = remember { FocusRequester() }
 
     var focusedKey by remember { mutableStateOf<String?>(null) }
     var pillFocused by remember { mutableStateOf(false) }
+    // Like pillFocused: stays set while the weather panel covers the corner, so closing it puts the
+    // focus back on the mark rather than on an app tile.
+    var weatherFocused by remember { mutableStateOf(false) }
     var lastFocusedIndex by remember { mutableStateOf(0) }
     val focusedIndex = apps.indexOfFirst { it.key == focusedKey }
     val focusedRow = if (pillFocused || focusedIndex < 0) 0 else focusedIndex / COLUMNS
@@ -230,7 +255,13 @@ private fun IconHome(
         if (!vm.loaded || overlay != Overlay.None) return@LaunchedEffect
         withFrameNanos { }
         val index = apps.indexOfFirst { it.key == focusedKey }
-        if (pillFocused && focusedKey != null) runCatching { pillRequester.requestFocus() } else focusApp(if (index >= 0) index else 0)
+        // The weather mark only exists while it is shown; if it vanished (switched off, key cleared)
+        // fall through to the app grid rather than asking for a focus node that is no longer there.
+        when {
+            Weather.state.show && weatherFocused && focusedKey != null -> runCatching { weatherRequester.requestFocus() }
+            pillFocused && focusedKey != null -> runCatching { pillRequester.requestFocus() }
+            else -> focusApp(if (index >= 0) index else 0)
+        }
     }
     // An app vanished from under the focus (uninstalled or hidden): take its neighbour.
     LaunchedEffect(apps) {
@@ -291,12 +322,32 @@ private fun IconHome(
             )
 
             Box(Modifier.fillMaxSize().offset { IntOffset(0, -scroll.value.roundToInt()) }) {
-                ShelfClock(
-                    now = now,
-                    modifier = Modifier
+                // Date and time, with the weather mark to their right and on their baseline. The
+                // mark is one more line of light on the wallpaper, not a card: no plate, no text.
+                Row(
+                    Modifier
                         .padding(start = metrics.margin, top = metrics.clockTop)
                         .graphicsLayer { alpha = 1f - (scroll.value / collapsePx * 1.6f).coerceIn(0f, 1f) },
-                )
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    ShelfClock(now = now)
+                    // Shown only once the weather is really on and has a reading; otherwise nothing
+                    // here takes focus or space.
+                    if (Weather.state.show) {
+                        Spacer(Modifier.width(22.dp))
+                        ShelfWeather(
+                            state = Weather.state,
+                            enabled = gridEnabled && moving == null,
+                            onClick = onOpenWeather,
+                            focusRequester = weatherRequester,
+                            onFocused = { gained ->
+                                weatherFocused = gained || weatherFocused
+                                if (gained) pillFocused = false
+                            },
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                    }
+                }
 
                 apps.forEachIndexed { index, app ->
                     key(app.key) {
@@ -322,6 +373,7 @@ private fun IconHome(
                                 focusedKey = app.key
                                 lastFocusedIndex = index
                                 pillFocused = false
+                                weatherFocused = false
                             },
                             onClick = { bounds -> onLaunch(app, bounds) },
                             onLongPress = { bounds ->
@@ -359,6 +411,7 @@ private fun IconHome(
                         if (apps.isNotEmpty()) focusApp(0)
                     } else {
                         pillFocused = true
+                        weatherFocused = false
                     }
                 }
             },

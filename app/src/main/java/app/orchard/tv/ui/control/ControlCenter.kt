@@ -73,6 +73,11 @@ import app.orchard.tv.ui.theme.GlyphIcon
 import app.orchard.tv.ui.theme.Motion
 import app.orchard.tv.ui.theme.Palette
 import app.orchard.tv.ui.theme.Type
+import app.orchard.tv.weather.Weather
+import app.orchard.tv.weather.XiaomiWeather
+import app.orchard.tv.weather.Sky
+import app.orchard.tv.weather.SkyMap
+import app.orchard.tv.ui.weather.WeatherIcon
 import java.time.LocalDateTime
 
 /**
@@ -170,7 +175,44 @@ private fun MainPage(vm: HomeViewModel, now: LocalDateTime, onOpen: (android.con
 
         Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            RoundButton(Glyph.Input, stringResource(R.string.cc_inputs), focusRequester = first) {
+            // Weather leads the row and takes first focus — but only when it is configured and has a
+            // reading. Without it the row is the original four buttons and Inputs takes first focus.
+            val weather = Weather.state
+            val showWeather = weather.show
+            if (showWeather) {
+                val shot = weather.snapshot
+                RoundButton(
+                    Glyph.Sun,
+                    stringResource(R.string.cc_weather),
+                    focusRequester = first,
+                    content = { focused ->
+                        val fg = if (focused) Palette.OnFocus else Palette.Label
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            WeatherIcon(
+                                sky = shot?.code?.let { SkyMap.of(it) } ?: Sky.Unknown,
+                                night = SkyMap.isNight(LocalDateTime.now().hour),
+                                color = fg,
+                                size = 18.dp,
+                            )
+                            if (shot != null) {
+                                BasicText(
+                                    "${shot.tempC}\u00B0",
+                                    style = Type.Caption.copy(color = fg, textAlign = TextAlign.Center),
+                                    maxLines = 1,
+                                )
+                            }
+                        }
+                    },
+                ) {
+                    vm.overlay = Overlay.None
+                    XiaomiWeather.openOrToast(context)
+                }
+            }
+            RoundButton(
+                Glyph.Input,
+                stringResource(R.string.cc_inputs),
+                focusRequester = if (showWeather) null else first,
+            ) {
                 vm.overlay = Overlay.ControlCenter(CcPage.Inputs)
             }
             RoundButton(
@@ -275,12 +317,22 @@ private fun StyleButton(label: String, selected: Boolean, modifier: Modifier, on
 
 /** A round Control Center button: frosted at rest, white when focused. */
 @Composable
-private fun RoundButton(glyph: Glyph, label: String, focusRequester: FocusRequester? = null, onClick: () -> Unit) {
+private fun RoundButton(
+    glyph: Glyph,
+    label: String,
+    focusRequester: FocusRequester? = null,
+    content: (@Composable (focused: Boolean) -> Unit)? = null,
+    onClick: () -> Unit,
+) {
     Pressable(onClick = onClick, focusRequester = focusRequester, focusedScale = 1.1f) { state ->
         val bg by animateColorAsState(if (state.focused) Palette.Focus else Palette.Fill, tween(140, easing = Motion.EaseOut), label = "round-bg")
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(72.dp)) {
-            Box(Modifier.size(58.dp).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) {
-                GlyphIcon(glyph, if (state.focused) Palette.OnFocus else Palette.Label, 24.dp)
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(58.dp)) {
+            Box(Modifier.size(52.dp).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) {
+                if (content != null) {
+                    content(state.focused)
+                } else {
+                    GlyphIcon(glyph, if (state.focused) Palette.OnFocus else Palette.Label, 22.dp)
+                }
             }
             Spacer(Modifier.height(8.dp))
             BasicText(

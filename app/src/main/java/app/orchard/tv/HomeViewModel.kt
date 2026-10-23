@@ -19,6 +19,8 @@ import app.orchard.tv.system.VolumeStatus
 import app.orchard.tv.ui.home.HomeStyle
 import app.orchard.tv.ui.home.ScreensaverSkips
 import app.orchard.tv.ui.home.StyleStore
+import app.orchard.tv.weather.Trigger
+import app.orchard.tv.weather.Weather
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -30,6 +32,13 @@ sealed interface Overlay {
     data class AppMenu(val key: String, val anchor: Rect) : Overlay
     data object HiddenApps : Overlay
     data object Wallpaper : Overlay
+
+    /**
+     * The weather settings panel: where the reading came from, when it was read, the state of the
+     * setup, and the phone page for the API Host and key. Opened only from Control Center's
+     * "Weather settings" row; the weather marks and the "Weather" row open the TV's own weather app.
+     */
+    data object Weather : Overlay
 }
 
 enum class CcPage { Main, Inputs }
@@ -159,6 +168,9 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         allAppsOpen = false
         movingKey = null
         overlay = Overlay.None
+        // A switch is one of the moments worth a look, but it does not get its own request: the
+        // hourly gate in WeatherBudget decides, exactly as it does for launch and wake.
+        Weather.refresh(Trigger.StyleSwitch)
     }
 
     fun onHomePressed() {

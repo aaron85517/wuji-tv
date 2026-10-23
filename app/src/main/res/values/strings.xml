@@ -65,4 +65,53 @@
     <string name="wp_phone_offline">Connect the TV to a network to set up with your phone.</string>
     <string name="ss_start">Start Now</string>
     <string name="ss_back_hint">Tip: press Back on the top row of Home to start the screensaver.</string>
+
+    <!-- Weather (personal build). The panel is the only place that explains the state; the home
+         screen keeps to an icon and a number. -->
+    <string name="weather_title">Weather</string>
+    <string name="weather_city">Location</string>
+    <string name="weather_updated">Updated</string>
+    <string name="weather_source">Source</string>
+    <string name="weather_source_value">QWeather</string>
+    <string name="weather_requests">Requests this month</string>
+    <string name="weather_status_ready">Connected</string>
+    <string name="weather_status_pending">Not set up</string>
+    <string name="weather_updated_just_now">Just now</string>
+    <string name="weather_updated_minutes">%1$d min ago</string>
+    <string name="weather_updated_hours">%1$d h ago</string>
+    <string name="weather_stale">Out of date</string>
+    <string name="weather_stale_hint">Read %1$s ago and not refreshed since. It will update on the next allowed refresh.</string>
+    <string name="weather_feels">Feels %1$d&#176;</string>
+    <string name="weather_humidity">%1$d%% humidity</string>
+    <string name="weather_wind">Wind %1$d</string>
+    <string name="weather_not_configured">No QWeather account yet. Enter the API Host and key on your phone; nothing is requested until then.</string>
+    <string name="weather_disabled">Weather is switched off.</string>
+    <string name="weather_no_location">No location from the TV, and none set by hand.</string>
+    <string name="weather_cooldown">Already updated this hour. The next request is allowed in %1$d min.</string>
+    <string name="weather_quota">This month\'s request limit (%1$s) is used up. The last reading stays on screen until next month.</string>
+    <string name="weather_failed_auth">The API Host or key was refused (401). Check them on your phone.</string>
+    <string name="weather_failed_forbidden">QWeather refused the request (403): no credit, a host restriction, or an overdue bill.</string>
+    <string name="weather_failed_network">No answer from QWeather. The last reading is shown.</string>
+    <string name="weather_failed_server">QWeather reported a server error. The last reading is shown.</string>
+    <string name="weather_failed_parse">The reply did not look like QWeather\'s.</string>
+    <string name="weather_failed_rate">QWeather asked for fewer requests (429). Nothing will be retried this hour.</string>
+    <string name="weather_phone_title">Set up on your phone</string>
+    <string name="weather_phone_body">Scan to enter the API Host and key. Phone and TV on the same network.</string>
+    <string name="weather_phone_offline">Connect the TV to a network to set this up.</string>
+    <string name="weather_attribution">Weather data by QWeather (和风天气)</string>
+    <string name="weather_close">Close</string>
+    <string name="cc_weather">Weather</string>
+    <string name="weather_trigger_launch">at launch</string>
+    <string name="weather_trigger_wake">when the TV woke</string>
+    <string name="weather_trigger_style">after a style switch</string>
+    <string name="weather_trigger_network">when the network came back</string>
+    <string name="weather_trigger_manual">on request</string>
+    <string name="weather_trigger_setup">after setup</string>
+    <string name="weather_trigger_tick">on the hourly check</string>
+    <string name="weather_requests_value">%1$d</string>
+    <string name="weather_last_try">Last attempt %1$s</string>
+    <string name="weather_place_manual">set by hand</string>
+    <string name="weather_place_system">TV location</string>
+    <string name="weather_settings">Weather settings</string>
+    <string name="weather_unavailable">Xiaomi Weather is not on this TV</string>
 </resources>

@@ -32,6 +32,8 @@ import app.orchard.tv.guard.GuardSetup
 import app.orchard.tv.guard.HomeGuardService
 import app.orchard.tv.ui.home.HomeScreen
 import app.orchard.tv.ui.theme.LocalReducedMotion
+import app.orchard.tv.weather.Trigger
+import app.orchard.tv.weather.Weather
 import app.orchard.tv.wallpaper.Wallpapers
 
 class MainActivity : ComponentActivity() {
@@ -47,7 +49,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: Network) = runOnUiThread { vm.refreshNetwork() }
+        override fun onAvailable(network: Network) = runOnUiThread {
+            vm.refreshNetwork()
+            // Worth another look only if the hour's attempt has not been spent already; the gate
+            // decides, this call cannot bypass it.
+            Weather.refresh(Trigger.Network)
+        }
         override fun onLost(network: Network) = runOnUiThread { vm.refreshNetwork() }
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) = runOnUiThread { vm.refreshNetwork() }
     }
@@ -60,6 +67,8 @@ class MainActivity : ComponentActivity() {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         Wallpapers.init(this)
+        // Reads the saved settings and the last reading; makes no request by itself.
+        Weather.init(this)
         val reducedMotion = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
 
         // The home screen paints every pixel itself; a window background would be one more
@@ -163,6 +172,7 @@ class MainActivity : ComponentActivity() {
         // Apps can change while Aerial is in the background without it hearing about it.
         vm.reload()
         Wallpapers.refreshDailyIfStale()
+        Weather.refresh(Trigger.Launch)
     }
 
     override fun onResume() {
@@ -170,10 +180,17 @@ class MainActivity : ComponentActivity() {
         restartIdleTimer()
         HomeGuardService.onAerialResumed()
         vm.refreshSystem()
+        // Coming back from standby lands here. Neither this nor onStart wakes anything: if the TV is
+        // asleep there is no call at all, and if the hour is spent the gate refuses.
+        Weather.refresh(Trigger.Wake)
+        // The hourly refresh is a foreground tick: it runs while the app is on screen and stops the
+        // moment it leaves, so a reading stays fresh during a long evening without ever waking the TV.
+        Weather.startForegroundTicker()
     }
 
     override fun onPause() {
         super.onPause()
+        Weather.stopForegroundTicker()
         idleHandler.removeCallbacks(showScreensaver)
         hideScreensaver()
     }

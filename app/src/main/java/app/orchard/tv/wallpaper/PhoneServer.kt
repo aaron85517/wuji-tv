@@ -10,6 +10,13 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
+import app.orchard.tv.weather.ApiHost
+import app.orchard.tv.weather.FailureKind
+import app.orchard.tv.weather.Trigger
+import app.orchard.tv.weather.Weather
+import app.orchard.tv.weather.WeatherConfig
+import app.orchard.tv.weather.WeatherNotice
+import app.orchard.tv.weather.WeatherState
 import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -57,6 +64,11 @@ class PhoneServer private constructor(private val context: Context, private val 
                     json(state())
                 }
                 session.method == Method.POST && path == "/api/upload" -> upload(session)
+                path == "/api/weather" -> weather(session)
+                session.method == Method.POST && path == "/api/weather/refresh" -> {
+                    Weather.refresh(Trigger.Manual)
+                    json(weatherJson(WeatherConfig(context)))
+                }
                 else -> text(Response.Status.NOT_FOUND, "Not found")
             }
         }.getOrElse { text(Response.Status.INTERNAL_ERROR, it.message ?: "error") }
@@ -101,6 +113,88 @@ class PhoneServer private constructor(private val context: Context, private val 
             }
         }
         return json(state().put("added", added))
+    }
+
+    /**
+     * The weather settings, over the same token-protected page as the wallpapers.
+     *
+     * GET reports the state of the setup and is deliberately unable to report the key: only whether
+     * one is stored. POST saves what was typed; the key travels in the request body, never in a URL,
+     * and a blank key field means "keep the one already there" so the page never has to echo it.
+     */
+    private fun weather(session: IHTTPSession): Response {
+        val config = WeatherConfig(context)
+        if (session.method == Method.POST) {
+            val form = form(session)
+            // Validate the host before touching any stored value: a bad host must not leave a
+            // half-written config (e.g. the switch already flipped) with no reconfigure behind it.
+            val hostRaw = form["host"]?.orEmpty()?.trim()
+            if (hostRaw != null && hostRaw.isNotEmpty() && ApiHost.normalize(hostRaw) == null) {
+                return json(weatherJson(config).put("error", "host"))
+            }
+            if (form["enabled"] != null) config.enabled = form["enabled"] == "1"
+            if (form["host"] != null) {
+                config.apiHost = if (hostRaw.isNullOrEmpty()) null else hostRaw
+            }
+            // An explicit clear, or a new value; an absent/blank field leaves the stored key alone.
+            if (form["clear_key"] == "1") config.clearKey()
+            form["key"]?.trim()?.takeIf { it.isNotEmpty() }?.let { config.apiKey = it }
+            form["manual_place"]?.let { config.manualPlace = it.trim().ifEmpty { null } }
+            // The saved config must reach the live Weather state at once, whether or not a refresh
+            // was asked for: switching the feature off (or clearing the key) has to hide the mark
+            // immediately, not after a request that may be cooling down or still in flight.
+            onMain { Weather.reconfigure() }
+            if (form["refresh"] == "1") Weather.refresh(Trigger.Setup)
+            return json(weatherJson(config))
+        }
+        return json(weatherJson(config))
+    }
+
+    /**
+     * What the page may see about the weather. Note what is missing: the key. This object is the only
+     * shape the server ever renders, so there is no code path that could serialise the credential.
+     */
+    private fun weatherJson(config: WeatherConfig): JSONObject {
+        val state: WeatherState = Weather.state
+        val out = JSONObject()
+        config.redacted().forEach { (k, v) -> out.put(k, v) }
+        out.put("monthCount", state.monthCount)
+        // A reading is only reported when the freshly-saved config is ready AND the live state agrees
+        // it should be shown. Otherwise the page must not see a stale temperature the TV has already
+        // stopped showing (e.g. the key was just cleared while a request was in flight).
+        if (config.ready && state.show) {
+            state.snapshot?.let { s ->
+                out.put("city", s.city)
+                out.put("text", s.text)
+                out.put("temp", s.tempC)
+                out.put("code", s.code)
+                out.put("fetchedAt", s.fetchedAt)
+                out.put("stale", state.stale)
+            }
+        }
+        out.put("place", state.place?.label ?: JSONObject.NULL)
+        out.put("busy", state.busy)
+        out.put("notice", noticeKey(state.notice))
+        (state.notice as? WeatherNotice.CoolingDown)?.let { out.put("cooldownMinutes", it.minutes) }
+        (state.notice as? WeatherNotice.Quota)?.let { out.put("quotaMonth", it.monthKey) }
+        return out
+    }
+
+    private fun noticeKey(notice: WeatherNotice?): Any = when (notice) {
+        null -> JSONObject.NULL
+        WeatherNotice.NotConfigured -> "not_configured"
+        WeatherNotice.Disabled -> "disabled"
+        WeatherNotice.NoLocation -> "no_location"
+        is WeatherNotice.CoolingDown -> "cooldown"
+        is WeatherNotice.Quota -> "quota"
+        is WeatherNotice.Failed -> when (notice.kind) {
+            FailureKind.Unauthorized -> "auth"
+            FailureKind.Forbidden, FailureKind.BadHost -> "forbidden"
+            FailureKind.RateLimited -> "rate"
+            FailureKind.Server -> "server"
+            FailureKind.Parse -> "parse"
+            else -> "network"
+        }
     }
 
     private fun form(session: IHTTPSession): Map<String, String> {

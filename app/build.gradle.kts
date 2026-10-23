@@ -29,11 +29,12 @@ android {
             dimension = "home"
             versionNameSuffix = "-guard"
         }
+        // The focus build keeps its own application id and signing key. versionCode 17 follows 16.
         create("focus") {
             dimension = "home"
             applicationIdSuffix = ".focus"
-            versionCode = 14
-            versionNameSuffix = "-focus.5"
+            versionCode = 17
+            versionNameSuffix = "-focus.8"
         }
     }
 

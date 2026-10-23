@@ -40,6 +40,13 @@
   .segmented button[aria-pressed="true"] { background: var(--segment); box-shadow: 0 1px 4px rgba(0,0,0,.12); font-weight: 600; }
   .segmented button:active { transform: scale(.97); }
   .hint { color: var(--secondary); font-size: 13px; margin: 8px 4px 0; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
+  .clear {
+    display: inline-block; margin: 6px 4px 0; padding: 6px 12px; border: 1px solid var(--sep);
+    border-radius: 10px; background: transparent; color: var(--secondary); font: inherit; font-size: 13px;
+    cursor: pointer;
+  }
+  .clear:active { transform: scale(.97); }
   .upload {
     display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
     padding: 15px; border: 0; border-radius: 14px; background: var(--tint); color: #fff;
@@ -76,6 +83,26 @@
   }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
   .empty { color: var(--secondary); font-size: 15px; padding: 4px; }
+  .pad { padding: 4px 14px 14px; }
+  .field { display: flex; align-items: center; gap: 12px; min-height: 48px; border-bottom: 1px solid var(--sep); }
+  .field:last-of-type { border-bottom: 0; }
+  .field > span { flex: none; width: 96px; font-size: 15px; color: var(--label); }
+  .field input {
+    flex: 1; min-width: 0; border: 0; background: transparent; color: var(--label);
+    font: inherit; font-size: 15px; padding: 10px 0; outline: none;
+  }
+  .field input::placeholder { color: var(--secondary); }
+  .toggle { display: flex; align-items: center; justify-content: space-between; min-height: 48px; border-bottom: 1px solid var(--sep); font-size: 16px; }
+  .switch { appearance: none; width: 50px; height: 30px; border-radius: 16px; background: var(--fill); position: relative; transition: background .2s ease; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .2s ease; }
+  .switch:checked { background: #34c759; }
+  .switch:checked::after { transform: translateX(20px); }
+  .wxline { font-size: 13px; margin: 10px 2px 0; }
+  .wxline.ok { color: var(--secondary); }
+  .wxline.warn { color: #c26a00; }
+  .wxline.bad { color: var(--danger); }
+  @media (prefers-color-scheme: dark) { .wxline.warn { color: #ff9f0a; } }
+  .saved { font-size: 13px; color: var(--secondary); margin: 8px 2px 0; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -84,6 +111,26 @@
   <h1>Aerial</h1>
   <p>{{DEVICE}} · 壁纸与屏保</p>
 </header>
+
+<h2>天气（可选）</h2>
+<div class="group pad" id="wxCard">
+  <label class="toggle"><span>在主屏幕显示天气</span><input type="checkbox" class="switch" id="wxEnabled"></label>
+  <label class="field"><span>API Host</span>
+    <input id="wxHost" placeholder="abc1234.qweatherapi.com" autocapitalize="off" autocorrect="off" spellcheck="false">
+  </label>
+  <label class="field"><span>API Key</span>
+    <input id="wxKey" type="password" autocomplete="new-password" placeholder="未设置">
+  </label>
+  <button class="clear" id="wxClearKey" type="button">清除已保存的 Key</button>
+  <label class="field"><span>手动位置</span>
+    <input id="wxPlace" placeholder="28.19,112.98（纬度,经度）">
+  </label>
+  <button class="upload" id="wxSave" style="margin-top:12px">保存并立即更新</button>
+  <p class="hint">Key 只存在电视里，不会回显到本页，也不会出现在任何日志或链接里。留空表示不修改已保存的 Key。</p>
+  <p class="hint">如何获得 Host 和 Key：到 <span class="mono">console.qweather.com</span> 注册并登录，创建一个项目，给项目添加「天气预报」这一项权限，创建一个 API KEY（仅勾选天气预报）。API Host 在「控制台 → 设置」（账号级）里，形如 <span class="mono">abc1234.qweatherapi.com</span>，详见 <span class="mono">dev.qweather.com/docs/configuration/api-host/</span>。把 Host 和 Key 分别填进上面两栏，再点「保存并立即更新」。</p>
+  <p class="hint">这里的 Key 不是你的账号密码，而是和风天气单独签发的一串密钥。它只保存在电视上；请不要把它写进代码、上传 GitHub，或截图发给别人。不配置这两项，主屏幕就不会显示天气。</p>
+  <p class="wxline" id="wxStatus"></p>
+</div>
 
 <h2>屏幕保护程序</h2>
 <div class="segmented" role="group" aria-label="屏保">
@@ -199,6 +246,92 @@ $('#file').onchange = async e => {
 async function refresh() { try { state = await api('api/state'); render(); } catch (e) {} }
 refresh();
 setInterval(() => { if (!document.hidden) refresh(); }, 6000);
+
+/* ---- weather ---- */
+const wxNotices = {
+  not_configured: ['ok', '还没填写 API Host 与 Key，主屏幕不会显示天气（这是正常状态，不影响其他功能）。'],
+  disabled: ['ok', '天气已关闭，主屏幕不会显示。'],
+  no_location: ['warn', '电视没有位置信息，请在上面填一个城市或坐标。'],
+  cooldown: ['ok', '这一小时已经更新过，稍后会自动再试。'],
+  quota: ['bad', '本月请求额度已用完，下个月恢复；电视上会继续显示最后一条数据。'],
+  auth: ['bad', 'API Host 或 Key 被拒绝（401），请检查后重新保存。'],
+  forbidden: ['bad', '和风天气拒绝了请求（403）：额度、请求限制或账单问题。'],
+  rate: ['bad', '请求过于频繁（429），这一小时不再重试。'],
+  server: ['warn', '和风天气服务出错，电视上显示的是上一条数据。'],
+  network: ['warn', '没连上和风天气，电视上显示的是上一条数据。'],
+  parse: ['warn', '返回内容无法解析，请稍后再试。']
+};
+let wxLoaded = false;
+
+function wxText(w) {
+  if (!w.ready && !w.hasKey) return '待配置';
+  if (w.city && typeof w.temp === 'number') return w.city + ' ' + w.text + ' ' + w.temp + '°';
+  return '已配置，等电视刷新';
+}
+
+function renderWeather(w) {
+  if (w.error === 'host') {
+    $('#wxStatus').className = 'wxline bad';
+    $('#wxStatus').textContent = 'API Host 必须以 .qweatherapi.com 结尾，例如 abc1234.qweatherapi.com。';
+  } else if (w.notice && wxNotices[w.notice]) {
+    const [cls, text] = wxNotices[w.notice];
+    $('#wxStatus').className = 'wxline ' + cls;
+    $('#wxStatus').textContent = text;
+  } else if (w.stale) {
+    $('#wxStatus').className = 'wxline warn';
+    $('#wxStatus').textContent = wxText(w) + ' · 这条数据已经过期，电视下次允许刷新时会更新。';
+  } else {
+    $('#wxStatus').className = 'wxline ok';
+    $('#wxStatus').textContent = wxText(w) + (w.busy ? ' · 正在更新…' : '') +
+      (w.monthCount != null ? ' · 本月已请求 ' + w.monthCount + ' 次' : '');
+  }
+  if (!wxLoaded) {
+    wxLoaded = true;
+    $('#wxHost').value = w.host || '';
+    $('#wxPlace').value = w.manualPlace || '';
+    $('#wxEnabled').checked = w.enabled !== false;
+  }
+  $('#wxKey').placeholder = w.hasKey ? '已保存，留空不修改' : '未设置';
+}
+
+async function loadWeather() {
+  try { renderWeather(await api('api/weather')); } catch (e) {}
+}
+
+$('#wxSave').onclick = async () => {
+  const btn = $('#wxSave');
+  btn.setAttribute('disabled', ''); btn.textContent = '正在保存…';
+  try {
+    const body = {
+      enabled: $('#wxEnabled').checked ? '1' : '0',
+      host: $('#wxHost').value.trim(),
+      manual_place: $('#wxPlace').value.trim(),
+      refresh: '1'
+    };
+    const key = $('#wxKey').value.trim();
+    if (key) body.key = key;
+    const w = await api('api/weather', body);
+    $('#wxKey').value = '';
+    renderWeather(w);
+    if (!w.error) toast('已保存，电视会尽快更新');
+  } catch (e) { toast('保存失败，请重试'); }
+  btn.removeAttribute('disabled'); btn.textContent = '保存并立即更新';
+};
+
+$('#wxClearKey').onclick = async () => {
+  const btn = $('#wxClearKey');
+  btn.setAttribute('disabled', ''); btn.textContent = '正在清除…';
+  try {
+    const w = await api('api/weather', { clear_key: '1' });
+    $('#wxKey').value = '';
+    renderWeather(w);
+    toast('已清除 Key，主屏幕将不再显示天气');
+  } catch (e) { toast('清除失败，请重试'); }
+  btn.removeAttribute('disabled'); btn.textContent = '清除已保存的 Key';
+};
+
+loadWeather();
+setInterval(() => { if (!document.hidden) loadWeather(); }, 8000);
 </script>
 </body>
 </html>

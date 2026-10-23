@@ -20,6 +20,14 @@ object Palette {
     val SecondaryLabel = Color(0x99EBEBF5)
     val TertiaryLabel = Color(0x4DEBEBF5)
     val Glass = Color(0xE6202022)
+
+    /**
+     * Glass without a blur behind it. Overlays that sit on the unblurred Home (the weather panel)
+     * use this instead: at 90% the shelf clock's 112pt digits read through the panel as ghost text,
+     * which looks like a drawing fault rather than a material.
+     */
+    val GlassSolid = Color(0xF2202022)
+
     val Fill = Color(0x2E787880)
     val FillStrong = Color(0x52787880)
     val Hairline = Color(0x1AFFFFFF)
